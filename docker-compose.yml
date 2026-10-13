@@ -1,0 +1,117 @@
+
+services:
+  # ─────────────────────────────────────────
+  # MYSQL — User, Order, Portfolio databases
+  # ─────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root # Development only; use secrets in production
+      MYSQL_DATABASE: trading
+      MYSQL_USER: trading_app
+      MYSQL_PASSWORD: trading_dev_password
+    ports:
+      - "3306:3306" # HOST:CONTAINER
+    volumes:
+      - mysql-data:/var/lib/mysql # Persist data across container recreation
+    networks:
+      - trading-network
+    healthcheck:
+      # -p passes the password to mysqladmin.
+      # This checks whether MySQL responds, not whether every DB operation works.
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ─────────────────────────────────────────
+  # REDIS — Price cache + rate limiting
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine # Pin a version instead of using the moving "latest" tag
+    ports:
+      - "6379:6379"
+    networks:
+      - trading-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # KAFKA — KRaft mode (no ZooKeeper)
+  #
+  # KRaft lets Kafka manage cluster metadata itself.
+  # This is a single-node development setup, not HA.
+  # ─────────────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    ports:
+      - "9092:9092" # Host applications connect through this port
+
+    environment:
+      # KRaft node configuration
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      # The controller quorum identifies this node by its Compose service name.
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      # Listeners define the network interfaces and ports Kafka binds to.
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:9092
+
+      # Advertised listeners are the addresses Kafka gives to clients.
+      # Container clients use kafka:29092; host clients use localhost:9092.
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+
+      # Map each listener name to its security protocol.
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+
+      # Brokers communicate with each other through the internal listener.
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # KRaft controller traffic uses the dedicated controller listener.
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # Single-broker settings: replication factor must be 1.
+      # These settings are unsuitable for a multi-broker production cluster.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      # Automatically create missing topics when clients request them.
+      # Convenient for development; explicit topic creation is preferable in production.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+      # Keep Kafka log segments for approximately 7 days.
+      KAFKA_LOG_RETENTION_HOURS: 168
+
+      # Fixed cluster ID required by this KRaft configuration.
+      # Keep it unchanged when reusing this cluster's existing data.
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+
+    volumes:
+      - kafka-data:/var/lib/kafka/data # Persist Kafka logs and metadata
+    networks:
+      - trading-network
+    healthcheck:
+      # Checks whether the broker can answer a topic-list request.
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+# Named volumes are managed by Docker and survive normal container recreation.
+volumes:
+  mysql-data:
+  kafka-data:
+
+# Services on this network can resolve each other by service name:
+# mysql, redis, kafka.
+networks:
+  trading-network:
+    driver: bridge
+
