@@ -1,3 +1,6 @@
 spring:
   application:
     name: user-service
+app:
+  user:
+    initial-balance: 10000
