@@ -2,6 +2,7 @@ package com.springtrade.userservice.controller;
 
 import com.springtrade.userservice.common.response.ApiResponse;
 import com.springtrade.userservice.dto.AuthResponse;
+import com.springtrade.userservice.dto.LoginRequest;
 import com.springtrade.userservice.dto.RegisterRequest;
 import com.springtrade.userservice.dto.UserResponse;
 import com.springtrade.userservice.service.UserService;
@@ -12,7 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigInteger;
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -37,7 +38,7 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> loginUser(
-            @Valid @RequestBody RegisterRequest request
+            @Valid @RequestBody LoginRequest request
     ) {
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -80,7 +81,7 @@ public class UserController {
     @PostMapping("/{userId}/funds/add")
     public ResponseEntity<ApiResponse<UserResponse>> addFundsToUser(
             @PathVariable String userId,
-            @RequestParam BigInteger amount
+            @RequestParam BigDecimal amount
             ) {
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -88,6 +89,36 @@ public class UserController {
                         ApiResponse.success(
                                 "Funds added to user successfully",
                                 userService.addFunds(userId, amount)
+                        )
+                );
+    }
+
+    @PostMapping("/{userId}/funds/remove")
+    public ResponseEntity<ApiResponse<UserResponse>> removeFundsFromUser(
+            @PathVariable String userId,
+            @RequestParam BigDecimal amount
+            ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(
+                        ApiResponse.success(
+                                "Funds removed from user successfully",
+                                userService.deductFunds(userId, amount)
+                        )
+                );
+    }
+
+    @PostMapping("/{userId}/funds/credit")
+    public ResponseEntity<ApiResponse<UserResponse>> creditFunds(
+            @PathVariable String userId,
+            @RequestParam BigDecimal amount
+            ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(
+                        ApiResponse.success(
+                                "Funds credited to user successfully",
+                                userService.creditFunds(userId, amount)
                         )
                 );
     }

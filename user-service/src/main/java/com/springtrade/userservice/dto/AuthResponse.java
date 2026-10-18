@@ -1,9 +1,7 @@
 package com.springtrade.userservice.dto;
 
 import com.springtrade.userservice.entity.UserSatus;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -23,4 +21,16 @@ public class AuthResponse {
     private String accessToken;
     private String refreshToken;
     private String tokenType = "Bearer";
+
+    public AuthResponse(String id, String email, String firstName, String lastName, BigDecimal walletBalance, UserSatus status, LocalDateTime createdAt, String token, String refreshToken) {
+        this.userId = id;
+        this.email = email;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.walletBalance = walletBalance;
+        this.status = status;
+        this.createdAt = createdAt;
+        this.accessToken = token;
+        this.refreshToken = refreshToken;
+    }
 }
