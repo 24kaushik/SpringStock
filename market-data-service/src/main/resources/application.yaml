@@ -1,3 +1,36 @@
 spring:
   application:
     name: market-data-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/market_db?createDatabaseIfNotExist=true
+    username: root
+    password: kaushik
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  data:
+    redis:
+      host: localhost
+      port: 6379
+market:
+  price-update-interval-ms: 2000
+server:
+  port: 8082
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
