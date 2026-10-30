@@ -1,3 +1,5 @@
 spring:
   application:
     name: portfolio-service
+market-data-service:
+  url: http://localhost:8082
