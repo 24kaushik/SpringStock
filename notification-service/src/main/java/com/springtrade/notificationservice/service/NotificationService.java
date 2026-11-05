@@ -66,9 +66,37 @@ public class NotificationService {
         }
     }
 
+    @KafkaListener(topics = "user.registered")
+    public void consumeUserRegistered(
+            @Payload Map<String, Object> payload
+    ) {
+        try {
+            String userId = (String) payload.get("userId");
+            String firstName = (String) payload.get("firstName");
+            Object walletBalance = payload.get("walletBalance");
 
+            sendNotification(userId,
+                    "Welcome to SpringTrade",
+                    String.format("Welcome %s! Your wallet balance is $%s.",
+                            firstName,
+                            walletBalance
+
+                    )
+            );
+
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+    }
 
     private void sendNotification(String userId, String title, String message) {
+        // Will implement Email notification later. For now, just log the notification.
 
+        log.info("----------------------------------------------------------");
+        log.info("-----------------------NOTIFICATION-----------------------");
+        log.info("User ID: {}", userId);
+        log.info("Title: {}", title);
+        log.info("Message: {}", message);
+        log.info("----------------------------------------------------------");
     }
 }
