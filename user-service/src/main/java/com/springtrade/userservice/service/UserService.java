@@ -7,15 +7,22 @@ import com.springtrade.userservice.dto.RegisterRequest;
 import com.springtrade.userservice.dto.UserResponse;
 import com.springtrade.userservice.entity.User;
 import com.springtrade.userservice.repository.UserRepository;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.security.Key;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,6 +35,15 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final UserProperties userProperties;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
+    @Value("${jwt.expiration}")
+    private long jwtExpiration;
+
+    @Value("${jwt.refresh-expiration}")
+    private long refreshExpiration;
 
     private static final String USER_REGISTERED_TOPIC = "user.registered";
 
@@ -72,6 +88,29 @@ public class UserService {
         String refreshToken = generateRefreshToken(savedUser.getId());
 
         return buildAuthResponse(savedUser, token, refreshToken);
+    }
+
+    private String generateToken(String id, String email) {
+        return Jwts.builder()
+                .setSubject(email)
+                .issuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .signWith(getSignKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    private String generateRefreshToken(String id) {
+        return Jwts.builder()
+                .setSubject(id)
+                .issuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + refreshExpiration))
+                .signWith(getSignKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    private Key getSignKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     /**

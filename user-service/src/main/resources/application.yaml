@@ -28,9 +28,9 @@ server:
   port: 8080
 
 jwt:
-    secret:
-    expiration:
-    refresh-expiration:
+    secret: "springtrade"
+    expiration: 86400000
+    refresh-expiration: 259200000
 management:
   endpoints:
     web:
